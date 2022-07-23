@@ -1,6 +1,5 @@
 import numpy as np
-
-from rail_types import Signal
+from overpy import Node
 
 def dist_nodes(n1, n2):
     # Calculate distance between two nodes
@@ -31,19 +30,38 @@ def is_switch(node):
 def is_x(node, x: str):
     return 'railway' in node.tags.keys() and node.tags['railway'] == x
 
-def make_signal_string(signal: Signal):
-    node_before, node_after = signal.edge
-    distance_side = dist_edge(node_before, node_after, signal.node)
-    distance_node_before = dist_nodes(node_before, signal.node)
-    kind = "andere"
-    function = "andere"
-    # ToDo extend arnes planpro generator to take dist_side as input, only then pos of signal is unambigous
-    signal_str = f"signal {node_before.id} {node_after.id} {distance_node_before} {function} {kind}\n"
-    return signal_str
-
 def is_same_edge(e1: tuple, e2: tuple):
     if e1 == e2:
         return True
     if e1[0] == e2[1] and e1[1] == e2[0]:
         return True
     return False
+
+def get_signal_function(signal: Node) -> str:
+    if not signal.tags['railway'] == 'signal':
+        raise Exception('Expected signal node')
+    try:
+        tag = next(t for t in signal.tags.keys() if t.endswith(':function'))
+        if signal.tags[tag] == 'entry':
+            return 'Einfahr_Signal'
+        elif signal.tags[tag] == 'exit':
+            return 'Ausfahr_Signal'
+        else:
+            return 'andere'
+    except StopIteration:
+        return 'andere'
+
+def get_signal_kind(signal: Node) -> str:
+    if not signal.tags['railway'] == 'signal':
+        raise Exception('Expected signal node')
+    # TODO: Check the mapping of ORM tags to PlanPro signal kinds
+    # ORM Reference: https://wiki.openstreetmap.org/wiki/OpenRailwayMap/Tagging/Signal
+    # Supported kinds in Arne's generator: "Hauptsignal", "Mehrabschnittssignal", "Vorsignal", "Sperrsignal", "Hauptsperrsignal", "andere"
+    if 'railway:signal:main' in signal.tags.keys():
+        return 'Hauptsignal'
+    elif 'railway:signal:minor' in signal.tags.keys():
+        return 'Vorsignal'
+    elif 'railway:signal:combined' in signal.tags.keys():
+        return 'Mehrabschnittssignal'
+    else:
+        return 'andere'

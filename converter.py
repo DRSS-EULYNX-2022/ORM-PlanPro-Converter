@@ -5,7 +5,7 @@ import overpy
 import networkx as nx
 
 from rail_types import BoundingBox, Signal
-from utils import is_end_node, is_same_edge, is_signal, is_switch, make_signal_string
+from utils import get_signal_function, get_signal_kind, is_end_node, is_same_edge, is_signal, is_switch
 
 class ORMConverter:
     def __init__(self):
@@ -46,7 +46,7 @@ class ORMConverter:
                 result_str += f"edge {edge[0].id} {edge[1].id}\n"
 
         for signal in self.signals:
-            result_str += make_signal_string(signal)
+            result_str += str(signal)
 
         if include_geo_data:
             for node in self.geo_nodes:
@@ -89,7 +89,9 @@ class ORMConverter:
         for idx, node_id in enumerate(path):
             node = self.node_data[node_id]  
             if is_signal(node):
-                signal = Signal(node, top_edge)
+                function = get_signal_function(node)
+                kind = get_signal_kind(node)
+                signal = Signal(node, top_edge, function, kind)
                 self.signals.append(signal)
 
     def run(self, x1, y1, x2, y2):
